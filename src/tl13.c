@@ -1,6 +1,7 @@
 #include "tl13.h"
-
 #include <stdlib.h>
+
+struct Variable* variables = NULL;
 
 enum Error {
 	UNKNOWN_ERROR = 1,
@@ -24,6 +25,7 @@ enum Error {
 	EXPECTED_OPERATOR,
 	EXPECTED_WHILE_STATEMENT,
 	EXPECTED_WRITE_INT,
+	VARIABLE_ALREADY_DECLARED,
 };
 
 void raise_error(enum Error error) {
@@ -108,6 +110,10 @@ void raise_error(enum Error error) {
 			fprintf(stderr, "Error: Expected write int.\n");
 
 			break;
+		case VARIABLE_ALREADY_DECLARED:
+			fprintf(stderr, "Error: Variable already declared.\n");
+
+			break;
 		default:
 			raise_error(UNKNOWN_ERROR);
 
@@ -187,11 +193,29 @@ void gen_code_declarations(FILE* code_dest, struct Declarations* declarations) {
 		return;
 	}
 
+    struct Variable* variable;
+
+    HASH_FIND_STR(variables, declarations->ident, variable);
+
+    if(variable) {
+    	raise_error(VARIABLE_ALREADY_DECLARED);
+
+        return;
+    }
+
 	if (!declarations->type) {
 		raise_error(EXPECTED_TYPE);
 
 		return;
 	}
+
+	variable = malloc(sizeof(struct Variable));
+
+    variable->ident = malloc(strlen(declarations->ident) + 1);
+    strcpy(variable->ident, declarations->ident);
+    variable->type = *declarations->type;
+
+    HASH_ADD_STR(variables, ident, variable);
 
 	switch (*declarations->type) {
 		case INT:

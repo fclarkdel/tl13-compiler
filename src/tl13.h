@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "../external/uthash.h"
 
 enum FactorType {
 	IDENT,
@@ -119,6 +120,12 @@ struct Declarations {
 struct Program {
 	struct Declarations* declarations;
 	struct StatementSequence* statement_sequence;
+};
+
+struct Variable {
+	char* ident;
+	enum Type type;
+	UT_hash_handle hh;
 };
 
 void gen_code_program(FILE* code_dest, struct Program* program);
