@@ -1,0 +1,6 @@
+program
+    var A as int;
+    var B as int;
+begin
+    A := B + C;
+end

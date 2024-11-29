@@ -1,6 +1,11 @@
 #include <stdio.h>
 #include "../external/uthash.h"
 
+enum Type {
+	INT,
+	BOOL,
+};
+
 enum FactorType {
 	IDENT,
 	NUM,
@@ -104,11 +109,6 @@ struct Statement {
 struct StatementSequence {
 	struct Statement* statement;
 	struct StatementSequence* statement_sequence;
-};
-
-enum Type {
-	INT,
-	BOOL,
 };
 
 struct Declarations {

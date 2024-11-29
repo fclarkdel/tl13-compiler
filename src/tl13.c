@@ -26,6 +26,7 @@ enum Error {
 	EXPECTED_WHILE_STATEMENT,
 	EXPECTED_WRITE_INT,
 	VARIABLE_ALREADY_DECLARED,
+	UNDECLARED_VARIABLE,
 };
 
 void raise_error(enum Error error) {
@@ -112,6 +113,10 @@ void raise_error(enum Error error) {
 			break;
 		case VARIABLE_ALREADY_DECLARED:
 			fprintf(stderr, "Error: Variable already declared.\n");
+
+			break;
+		case UNDECLARED_VARIABLE:
+			fprintf(stderr, "Error: Undeclared variable.\n");
 
 			break;
 		default:
@@ -308,6 +313,17 @@ void gen_code_assignment(FILE* code_dest, struct Assignment* assignment) {
 
 		return;
 	}
+
+	struct Variable* variable;
+
+	HASH_FIND_STR(variables, assignment->ident, variable);
+
+	if(!variable) {
+		raise_error(UNDECLARED_VARIABLE);
+
+		return;
+	}
+
 	fprintf(code_dest, "	%s = ", assignment->ident);
 
 	if (assignment->expression)
@@ -483,6 +499,16 @@ void gen_code_factor(FILE* code_dest, struct Factor* factor) {
 
 	switch (factor->type) {
 		case IDENT:
+			struct Variable* variable;
+
+			HASH_FIND_STR(variables, factor->factor.ident, variable);
+
+			if(!variable) {
+				raise_error(UNDECLARED_VARIABLE);
+
+				return;
+			}
+
 			fprintf(code_dest, "%s", factor->factor.ident);
 
 			break;
