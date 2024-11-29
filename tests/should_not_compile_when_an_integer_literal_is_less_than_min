@@ -1,0 +1,5 @@
+program
+    var A as int;
+begin
+    A := -1;
+end

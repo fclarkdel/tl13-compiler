@@ -1,0 +1,5 @@
+program
+    var A as bool;
+begin
+    writeInt A;
+end

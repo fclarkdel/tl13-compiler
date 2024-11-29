@@ -1,0 +1,7 @@
+program
+    var A as int;
+    var B as bool;
+    var TEMP as int;
+begin
+    TEMP := A - B;
+end

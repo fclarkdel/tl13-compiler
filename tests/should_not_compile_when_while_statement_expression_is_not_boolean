@@ -1,0 +1,13 @@
+program
+    var A as int;
+    var B as int;
+    var C as int;
+begin
+    A := 0;
+    B := 1;
+    C := 3;
+
+    while C < A do
+        C := A + B;
+    end;
+end
