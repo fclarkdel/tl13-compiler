@@ -27,6 +27,8 @@ enum Error {
 	EXPECTED_WRITE_INT,
 	VARIABLE_ALREADY_DECLARED,
 	UNDECLARED_VARIABLE,
+  	TYPE_MISMATCH,
+  	UNKNOWN_TYPE,
 };
 
 void raise_error(enum Error error) {
@@ -35,8 +37,8 @@ void raise_error(enum Error error) {
 			fprintf(stderr, "Error: Unknown error.\n");
 
 			break;
-		case UNKNOWN_DECLARATION_TYPE:
-			fprintf(stderr, "Error: Unknown declaration type.\n");
+		case UNKNOWN_TYPE:
+			fprintf(stderr, "Error: Unknown type.\n");
 
 			break;
 		case INVALID_IDENTIFIER:
@@ -117,6 +119,10 @@ void raise_error(enum Error error) {
 			break;
 		case UNDECLARED_VARIABLE:
 			fprintf(stderr, "Error: Undeclared variable.\n");
+
+			break;
+		case TYPE_MISMATCH:
+			fprintf(stderr, "Error: Types do not match.\n");
 
 			break;
 		default:
@@ -232,7 +238,7 @@ void gen_code_declarations(FILE* code_dest, struct Declarations* declarations) {
 
 			break;
 		default:
-			raise_error(UNKNOWN_DECLARATION_TYPE);
+			raise_error(UNKNOWN_TYPE);
 
 			return;
 	}
@@ -301,6 +307,54 @@ void gen_code_statement(FILE* code_dest, struct Statement* statement) {
 	}
 }
 
+enum Type get_factor_type(struct Factor* factor) {
+
+
+ 	return INT;
+}
+
+enum Type get_term_type(struct Term* term) {
+	enum Type lhs_type = get_factor_type(term->factor0);
+
+	if(!term->factor1)
+		return lhs_type;
+
+	enum Type rhs_type = get_factor_type(term->factor1);
+
+	if(lhs_type != rhs_type)
+		raise_error(TYPE_MISMATCH);
+
+	return lhs_type;
+}
+
+enum Type get_simple_expression_type(struct SimpleExpression* simple_expression) {
+	enum Type lhs_type = get_term_type(simple_expression->term0);
+
+    if(!simple_expression->term1)
+    	return lhs_type;
+
+	enum Type rhs_type = get_term_type(simple_expression->term1);
+
+	if(lhs_type != rhs_type)
+		raise_error(TYPE_MISMATCH);
+
+	return lhs_type;
+}
+
+enum Type get_expression_type(struct Expression* expression) {
+  	enum Type lhs_type = get_simple_expression_type(expression->simple_expression0);
+
+    if(!expression->simple_expression1)
+      	return lhs_type;
+
+  	enum Type rhs_type = get_simple_expression_type(expression->simple_expression1);
+
+    if(lhs_type != rhs_type)
+    	raise_error(TYPE_MISMATCH);
+
+    return lhs_type;
+}
+
 void gen_code_assignment(FILE* code_dest, struct Assignment* assignment) {
 	if (!assignment) {
 		raise_error(EXPECTED_ASSIGNMENT);
@@ -326,10 +380,22 @@ void gen_code_assignment(FILE* code_dest, struct Assignment* assignment) {
 
 	fprintf(code_dest, "	%s = ", assignment->ident);
 
-	if (assignment->expression)
+	if (assignment->expression) {
+        if(get_expression_type(assignment->expression) != variable->type) {
+        	raise_error(TYPE_MISMATCH);
+
+            return;
+        }
 		gen_code_expression(code_dest, assignment->expression);
-	else
+    }
+	else {
+		if(INT != variable->type) {
+			raise_error(TYPE_MISMATCH);
+
+			return;
+		}
 		fprintf(code_dest, " read_int()");
+    }
 
 	fprintf(code_dest, ";\n");
 }
