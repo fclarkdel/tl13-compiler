@@ -307,9 +307,33 @@ void gen_code_statement(FILE* code_dest, struct Statement* statement) {
 	}
 }
 
+enum Type get_expression_type(struct Expression* expression);
+
 enum Type get_factor_type(struct Factor* factor) {
+	switch(factor->type) {
+		case IDENT:
+			struct Variable* variable;
 
+			HASH_FIND_STR(variables, factor->factor.ident, variable);
 
+			if(!variable) {
+				raise_error(UNDECLARED_VARIABLE);
+
+				return INT;
+			}
+
+			return variable->type;
+		case NUM:
+			return INT;
+		case BOOLLIT:
+            return BOOL;
+		case EXPRESSION:
+			return get_expression_type(factor->factor.expression);
+        default:
+          	raise_error(UNKNOWN_TYPE);
+
+         	return INT;
+    }
  	return INT;
 }
 
