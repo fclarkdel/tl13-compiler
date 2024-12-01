@@ -1,6 +1,6 @@
 DIR=$(dirname "$0")
 
-bash $DIR/build.sh
+sh $DIR/build.sh
 
 pass_total=0
 fail_total=0

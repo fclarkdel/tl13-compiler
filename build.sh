@@ -1,5 +1,5 @@
 # If build directory exists, clear it. Otherwise make it.
-if [[ -d ./build/ ]]; then
+if [ -d ./build/ ]; then
   rm -r ./build/*
 else
   mkdir ./build/
