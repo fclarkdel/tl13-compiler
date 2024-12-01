@@ -7,7 +7,7 @@ begin
     B := 1;
     C := 3;
 
-    while C < A do
+    while C + A do
         C := A + B;
     end;
 end

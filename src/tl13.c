@@ -1,5 +1,9 @@
 #include "tl13.h"
+
 #include <stdlib.h>
+#include <stdio.h>
+#include <errno.h>
+#include <limits.h>
 
 struct Variable* variables = NULL;
 
@@ -27,102 +31,109 @@ enum Error {
 	UNKNOWN_OPERATOR,
 	UNKNOWN_STATEMENT_TYPE,
 	VARIABLE_ALREADY_DECLARED,
-  	TYPE_MISMATCH,
-  	UNKNOWN_TYPE,
+	TYPE_MISMATCH,
+	UNKNOWN_TYPE,
+	INVALID_INTEGER_LITERAL,
 };
 
 void raise_error(enum Error error) {
+	FILE* err_dest = stdout;
+
 	switch (error) {
 		case UNKNOWN_ERROR:
-			fprintf(stderr, "Error: Unknown error.\n");
+			fprintf(err_dest, "Error: Unknown error.\n");
 
 			break;
 		case UNKNOWN_TYPE:
-			fprintf(stderr, "Error: Unknown type.\n");
+			fprintf(err_dest, "Error: Unknown type.\n");
 
 			break;
 		case INVALID_IDENTIFIER:
-			fprintf(stderr, "Error: Invalid identifier.\n");
+			fprintf(err_dest, "Error: Invalid identifier.\n");
 
 			break;
 		case UNKNOWN_STATEMENT_TYPE:
-			fprintf(stderr, "Error: Unknown statement type.\n");
+			fprintf(err_dest, "Error: Unknown statement type.\n");
 
 			break;
 		case EXPECTED_EXPRESSION:
-			fprintf(stderr, "Error: Expected expression.\n");
+			fprintf(err_dest, "Error: Expected expression.\n");
 
 			break;
 		case UNKNOWN_OPERATOR:
-			fprintf(stderr, "Error: Unknown operator.\n");
+			fprintf(err_dest, "Error: Unknown operator.\n");
 
 			break;
 		case EXPECTED_SIMPLE_EXPRESSION:
-			fprintf(stderr, "Error: Expected simple expression.\n");
+			fprintf(err_dest, "Error: Expected simple expression.\n");
 
 			break;
 		case EXPECTED_TERM:
-			fprintf(stderr, "Error: Expected term.\n");
+			fprintf(err_dest, "Error: Expected term.\n");
 
 			break;
 		case EXPECTED_FACTOR:
-			fprintf(stderr, "Error: Expected factor.\n");
+			fprintf(err_dest, "Error: Expected factor.\n");
 
 			break;
 		case EXPECTED_STATEMENT:
-			fprintf(stderr, "Error: Expected statement.\n");
+			fprintf(err_dest, "Error: Expected statement.\n");
 
 			break;
 		case EXPECTED_ASSIGNMENT:
-			fprintf(stderr, "Error: Expected assignment.\n");
+			fprintf(err_dest, "Error: Expected assignment.\n");
 
 			break;
 		case EXPECTED_IF_STATEMENT:
-			fprintf(stderr, "Error: Expected if statement.\n");
+			fprintf(err_dest, "Error: Expected if statement.\n");
 
 			break;
 		case EXPECTED_STATEMENT_SEQUENCE:
-			fprintf(stderr, "Error: Expected statement sequence.\n");
+			fprintf(err_dest, "Error: Expected statement sequence.\n");
 
 			break;
 		case EXPECTED_ELSE_CLAUSE:
-			fprintf(stderr, "Error: Expected else clause.\n");
+			fprintf(err_dest, "Error: Expected else clause.\n");
 
 			break;
 		case EXPECTED_DECLARATIONS:
-			fprintf(stderr, "Error: Expected declarations.\n");
+			fprintf(err_dest, "Error: Expected declarations.\n");
 
 			break;
 		case EXPECTED_TYPE:
-			fprintf(stderr, "Error: Expected type.\n");
+			fprintf(err_dest, "Error: Expected type.\n");
 
 			break;
 		case EXPECTED_PROGRAM:
-			fprintf(stderr, "Error: Expected program.\n");
+			fprintf(err_dest, "Error: Expected program.\n");
 
 			break;
 		case EXPECTED_OPERATOR:
-			fprintf(stderr, "Error: Expected operator.\n");
+			fprintf(err_dest, "Error: Expected operator.\n");
 
 			break;
 		case EXPECTED_WHILE_STATEMENT:
-			fprintf(stderr, "Error: Expected while statement.\n");
+			fprintf(err_dest, "Error: Expected while statement.\n");
 
 			break;
 		case EXPECTED_WRITE_INT:
-			fprintf(stderr, "Error: Expected write int.\n");
+			fprintf(err_dest, "Error: Expected write int.\n");
 
 			break;
 		case VARIABLE_ALREADY_DECLARED:
-			fprintf(stderr, "Error: Variable already declared.\n");
+			fprintf(err_dest, "Error: Variable already declared.\n");
 
 			break;
 		case UNDECLARED_VARIABLE:
-			fprintf(stderr, "Error: Undeclared variable.\n");
+			fprintf(err_dest, "Error: Undeclared variable.\n");
 
 			break;
 		case TYPE_MISMATCH:
-			fprintf(stderr, "Error: Types do not match.\n");
+			fprintf(err_dest, "Error: Types do not match.\n");
+
+			break;
+		case INVALID_INTEGER_LITERAL:
+			fprintf(err_dest, "Error: Invalid integer literal.\n");
 
 			break;
 		default:
@@ -151,76 +162,75 @@ void define_write_int(FILE* code_dest) {
 	fprintf(code_dest, "}\n");
 }
 
-enum Type get_expression_type(struct Expression* expression);
+enum Type get_type_expression(struct Expression* expression);
 
-enum Type get_factor_type(struct Factor* factor) {
-	switch(factor->type) {
+enum Type get_type_factor(struct Factor* factor) {
+	switch (factor->type) {
 		case IDENT:
 			struct Variable* variable;
 
-		HASH_FIND_STR(variables, factor->factor.ident, variable);
+			HASH_FIND_STR(variables, factor->factor.ident, variable);
 
-		if(!variable) {
-			raise_error(UNDECLARED_VARIABLE);
+			if (!variable) {
+				raise_error(UNDECLARED_VARIABLE);
 
-			return INT;
-		}
+				return INT;
+			}
 
-		return variable->type;
+			return variable->type;
 		case NUM:
 			return INT;
 		case BOOLLIT:
 			return BOOL;
 		case EXPRESSION:
-			return get_expression_type(factor->factor.expression);
+			return get_type_expression(factor->factor.expression);
 		default:
 			raise_error(UNKNOWN_TYPE);
 
-		return INT;
+			return INT;
 	}
-	return INT;
 }
 
-enum Type get_term_type(struct Term* term) {
-	enum Type lhs_type = get_factor_type(term->factor0);
+enum Type get_type_term(struct Term* term) {
+	enum Type lhs_type = get_type_factor(term->factor0);
 
-	if(!term->factor1)
+	if (!term->factor1)
 		return lhs_type;
 
-	enum Type rhs_type = get_factor_type(term->factor1);
+	enum Type rhs_type = get_type_factor(term->factor1);
 
-	if(lhs_type != rhs_type)
+	if (lhs_type != rhs_type)
 		raise_error(TYPE_MISMATCH);
 
 	return lhs_type;
 }
 
-enum Type get_simple_expression_type(struct SimpleExpression* simple_expression) {
-	enum Type lhs_type = get_term_type(simple_expression->term0);
+enum Type get_type_simple_expression(struct SimpleExpression* simple_expression) {
+	enum Type lhs_type = get_type_term(simple_expression->term0);
 
-	if(!simple_expression->term1)
+	if (!simple_expression->term1)
 		return lhs_type;
 
-	enum Type rhs_type = get_term_type(simple_expression->term1);
+	enum Type rhs_type = get_type_term(simple_expression->term1);
 
-	if(lhs_type != rhs_type)
+	if (lhs_type != rhs_type)
 		raise_error(TYPE_MISMATCH);
 
 	return lhs_type;
 }
 
-enum Type get_expression_type(struct Expression* expression) {
-	enum Type lhs_type = get_simple_expression_type(expression->simple_expression0);
+enum Type get_type_expression(struct Expression* expression) {
+	enum Type lhs_type = get_type_simple_expression(expression->simple_expression0);
 
-	if(!expression->simple_expression1)
+	if (!expression->simple_expression1)
 		return lhs_type;
 
-	enum Type rhs_type = get_simple_expression_type(expression->simple_expression1);
+	enum Type rhs_type = get_type_simple_expression(expression->simple_expression1);
 
-	if(lhs_type != rhs_type)
+	if (lhs_type != rhs_type)
 		raise_error(TYPE_MISMATCH);
 
-	return lhs_type;
+	return BOOL;
 }
 
 void gen_code_program(FILE* code_dest, struct Program* program) {
@@ -276,15 +286,15 @@ void gen_code_declarations(FILE* code_dest, struct Declarations* declarations) {
 		return;
 	}
 
-    struct Variable* variable;
+	struct Variable* variable;
 
-    HASH_FIND_STR(variables, declarations->ident, variable);
+	HASH_FIND_STR(variables, declarations->ident, variable);
 
-    if(variable) {
-    	raise_error(VARIABLE_ALREADY_DECLARED);
+	if (variable) {
+		raise_error(VARIABLE_ALREADY_DECLARED);
 
-        return;
-    }
+		return;
+	}
 
 	if (!declarations->type) {
 		raise_error(EXPECTED_TYPE);
@@ -294,11 +304,11 @@ void gen_code_declarations(FILE* code_dest, struct Declarations* declarations) {
 
 	variable = malloc(sizeof(struct Variable));
 
-    variable->ident = malloc(strlen(declarations->ident) + 1);
-    strcpy(variable->ident, declarations->ident);
-    variable->type = *declarations->type;
+	variable->ident = malloc(strlen(declarations->ident) + 1);
+	strcpy(variable->ident, declarations->ident);
+	variable->type = *declarations->type;
 
-    HASH_ADD_STR(variables, ident, variable);
+	HASH_ADD_STR(variables, ident, variable);
 
 	switch (*declarations->type) {
 		case INT:
@@ -396,7 +406,7 @@ void gen_code_assignment(FILE* code_dest, struct Assignment* assignment) {
 
 	HASH_FIND_STR(variables, assignment->ident, variable);
 
-	if(!variable) {
+	if (!variable) {
 		raise_error(UNDECLARED_VARIABLE);
 
 		return;
@@ -405,21 +415,20 @@ void gen_code_assignment(FILE* code_dest, struct Assignment* assignment) {
 	fprintf(code_dest, "	%s = ", assignment->ident);
 
 	if (assignment->expression) {
-        if(get_expression_type(assignment->expression) != variable->type) {
-        	raise_error(TYPE_MISMATCH);
+		if (get_type_expression(assignment->expression) != variable->type) {
+			raise_error(TYPE_MISMATCH);
 
-            return;
-        }
+			return;
+		}
 		gen_code_expression(code_dest, assignment->expression);
-    }
-	else {
-		if(INT != variable->type) {
+	} else {
+		if (INT != variable->type) {
 			raise_error(TYPE_MISMATCH);
 
 			return;
 		}
 		fprintf(code_dest, " read_int()");
-    }
+	}
 
 	fprintf(code_dest, ";\n");
 }
@@ -580,6 +589,20 @@ void gen_code_term(FILE* code_dest, struct Term* term) {
 	gen_code_factor(code_dest, term->factor1);
 }
 
+
+void validate_integer_literal(const char* num) {
+	char* end;
+
+	errno = 0;
+
+	long value = strtol(num, &end, 10);
+
+	if (errno == ERANGE || value > INT_MAX || value < INT_MIN || *end != '\0')
+		raise_error(INVALID_INTEGER_LITERAL);
+
+	return;
+}
+
 void gen_code_factor(FILE* code_dest, struct Factor* factor) {
 	if (!factor) {
 		raise_error(EXPECTED_FACTOR);
@@ -593,7 +616,7 @@ void gen_code_factor(FILE* code_dest, struct Factor* factor) {
 
 			HASH_FIND_STR(variables, factor->factor.ident, variable);
 
-			if(!variable) {
+			if (!variable) {
 				raise_error(UNDECLARED_VARIABLE);
 
 				return;
@@ -603,6 +626,8 @@ void gen_code_factor(FILE* code_dest, struct Factor* factor) {
 
 			break;
 		case NUM:
+			validate_integer_literal(factor->factor.num);
+
 			fprintf(code_dest, "%s", factor->factor.num);
 
 			break;
@@ -634,6 +659,11 @@ void gen_code_if_statement(FILE* code_dest, struct IfStatement* if_statement) {
 
 	if (!if_statement->expression) {
 		raise_error(EXPECTED_EXPRESSION);
+
+		return;
+	}
+	if (get_type_expression(if_statement->expression) != BOOL) {
+		raise_error(TYPE_MISMATCH);
 
 		return;
 	}
@@ -687,11 +717,11 @@ void gen_code_while_statement(FILE* code_dest, struct WhileStatement* while_stat
 		return;
 	}
 
-    if(get_expression_type(while_statement->expression) != BOOL) {
-    	raise_error(TYPE_MISMATCH);
+	if (get_type_expression(while_statement->expression) != BOOL) {
+		raise_error(TYPE_MISMATCH);
 
-        return;
-    }
+		return;
+	}
 
 	gen_code_expression(code_dest, while_statement->expression);
 
@@ -719,6 +749,11 @@ void gen_code_write_int(FILE* code_dest, struct WriteInt* write_int) {
 
 	if (!write_int->expression) {
 		raise_error(EXPECTED_EXPRESSION);
+
+		return;
+	}
+	if (get_type_expression(write_int->expression) != INT) {
+		raise_error(TYPE_MISMATCH);
 
 		return;
 	}
